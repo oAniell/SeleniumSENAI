@@ -1,5 +1,6 @@
 package br.com.seubarriga.steps;
 
+import br.com.seubarriga.support.Config;
 import br.com.seubarriga.support.DriverFactory;
 import br.com.seubarriga.support.TestUser;
 import io.cucumber.java.pt.Dado;
@@ -27,26 +28,13 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class AppSteps {
-    private static final String BASE_URL = System.getenv()
-            .getOrDefault("SEUBARRIGA_URL", "https://seubarriga.wcaquino.me");
+    private static final String BASE_URL = Config.BASE_URL;
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final Locale PORTUGUESE = Locale.forLanguageTag("pt-BR");
 
     private final WebDriver driver = DriverFactory.getDriver();
     private final WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
     private String accountName;
-
-    @Quando("cadastro um novo usuário para os testes")
-    public void cadastrarNovoUsuarioParaOsTestes() {
-        driver.get(BASE_URL + "/cadastro");
-        firstElement(By.cssSelector("input[name='nome'], input#nome"))
-                .sendKeys(TestUser.getName());
-        firstElement(By.cssSelector("input[type='email'], input[name='email']"))
-                .sendKeys(TestUser.getEmail());
-        firstElement(By.cssSelector("input[type='password'], input[name='senha']"))
-                .sendKeys(TestUser.getPassword());
-        clickText("Cadastrar");
-    }
 
     @Dado("que acessei a aplicação e fiz login")
     public void acessarAplicacaoEFazerLogin() {
@@ -123,14 +111,40 @@ public class AppSteps {
         String monthName = today.getMonth().getDisplayName(TextStyle.FULL, PORTUGUESE);
         selectOption("mes", "Mês", monthName);
         selectOption("ano", "Ano", Integer.toString(today.getYear()));
+
+        WebElement formularioAntesDaBusca = driver.findElement(By.tagName("form"));
         clickText("Buscar");
+        try {
+            // Espera a página recarregar com o resultado da busca.
+            wait.until(ExpectedConditions.stalenessOf(formularioAntesDaBusca));
+        } catch (TimeoutException ignored) {
+            // A busca pode atualizar a página sem recarregá-la; a verificação seguinte cobre os dois casos.
+        }
     }
 
-    @Entao("o resumo mensal é exibido")
+    @Entao("o resumo mensal é exibido para o mês e ano atuais")
     public void verificarResumoMensal() {
-        wait.until(currentDriver -> currentDriver.getPageSource().contains("Resumo Mensal"));
-        Assertions.assertTrue(driver.getPageSource().contains("Resumo Mensal"),
-                "A página do resumo mensal não foi exibida.");
+        LocalDate today = LocalDate.now();
+
+        Select mes = new Select(wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.cssSelector("select[name='mes'], select#mes"))));
+        WebElement mesSelecionado = mes.getFirstSelectedOption();
+        String nomeDoMes = today.getMonth().getDisplayName(TextStyle.FULL, PORTUGUESE);
+        String valorDoMes = mesSelecionado.getAttribute("value");
+        boolean mesCorreto = nomeDoMes.equalsIgnoreCase(mesSelecionado.getText().trim())
+                || Integer.toString(today.getMonthValue()).equals(valorDoMes)
+                || String.format("%02d", today.getMonthValue()).equals(valorDoMes);
+        Assertions.assertTrue(mesCorreto,
+                "O mês filtrado deveria ser " + nomeDoMes + ", mas está " + mesSelecionado.getText());
+
+        Select ano = new Select(driver.findElement(By.cssSelector("select[name='ano'], select#ano")));
+        Assertions.assertEquals(Integer.toString(today.getYear()),
+                ano.getFirstSelectedOption().getText().trim(),
+                "O ano filtrado não corresponde ao ano buscado.");
+
+        boolean tabelaExibida = driver.findElements(By.tagName("table")).stream()
+                .anyMatch(WebElement::isDisplayed);
+        Assertions.assertTrue(tabelaExibida, "A tabela do resumo mensal não foi exibida.");
     }
 
     @Quando("edito o nome da conta criada")
@@ -312,13 +326,6 @@ public class AppSteps {
             throw new IllegalStateException("Campo '" + label + "' não encontrado. Campos: "
                     + availableFields, exception);
         }
-    }
-
-    private WebElement firstElement(By locator) {
-        return wait.until(currentDriver -> {
-            List<WebElement> elements = currentDriver.findElements(locator);
-            return elements.isEmpty() ? null : elements.get(0);
-        });
     }
 
     private WebElement editableInput(By locator) {

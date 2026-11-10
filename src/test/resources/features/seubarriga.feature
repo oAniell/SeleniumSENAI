@@ -2,12 +2,8 @@
 
 Funcionalidade: Cadastro e gerenciamento financeiro no Seu Barriga
   Como usuário do Seu Barriga
-  Quero cadastrar um usuário e gerenciar minhas contas e movimentações
+  Quero gerenciar minhas contas e movimentações
   Para acompanhar minhas finanças
-
-  Cenário: Criar usuário para a execução dos testes
-    Quando cadastro um novo usuário para os testes
-    Então vejo a notificação "Usuário inserido com sucesso"
 
   Cenário: Não inserir uma conta sem nome
     Dado que acessei a aplicação e fiz login
@@ -32,7 +28,7 @@ Funcionalidade: Cadastro e gerenciamento financeiro no Seu Barriga
   Cenário: Buscar o resumo mensal pelo mês e ano atuais
     Dado que acessei a aplicação e fiz login
     Quando busco o resumo mensal do mês e ano atuais
-    Então o resumo mensal é exibido
+    Então o resumo mensal é exibido para o mês e ano atuais
 
   Cenário: Editar o nome de uma conta
     Dado que acessei a aplicação e fiz login

@@ -21,8 +21,9 @@ No PowerShell:
 mvn test
 ```
 
-O primeiro cenário cadastra um usuário com email e senha únicos gerados para
-essa execução. Os cenários seguintes fazem login com esse mesmo usuário. As
+Antes de toda a suíte, um hook `@BeforeAll` cadastra um usuário com email e
+senha únicos gerados para essa execução, e todos os cenários fazem login com
+ele. Por isso cada cenário é independente e pode ser executado sozinho. As
 credenciais ficam apenas em memória durante a execução e não precisam ser
 configuradas.
 
@@ -40,12 +41,11 @@ Para usar o Edge, configure `$env:BROWSER = "edge"`.
 
 ## Cenários cobertos
 
-1. Criar o usuário que será usado pelos cenários seguintes.
-2. Impedir a criação de conta sem nome.
-3. Impedir a criação de conta com nome duplicado.
-4. Criar uma conta e uma movimentação para ela.
-5. Consultar o resumo mensal para o mês e ano atuais.
-6. Editar o nome de uma conta.
+1. Impedir a criação de conta sem nome.
+2. Impedir a criação de conta com nome duplicado.
+3. Criar uma conta e uma movimentação para ela.
+4. Consultar o resumo mensal filtrando pelo mês e ano atuais e conferir o filtro aplicado.
+5. Editar o nome de uma conta.
 
 Os cenários que criam dados usam nomes únicos para evitar conflitos entre
 execuções. O relatório HTML do Cucumber é gerado em
